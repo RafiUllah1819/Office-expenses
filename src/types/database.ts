@@ -4,7 +4,7 @@
 // Keep this in sync with supabase/schema.sql whenever you add/change tables.
 // ---------------------------------------------------------------------------
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
 
@@ -173,5 +173,6 @@ export interface Database {
 
     Functions: Record<string, never>;
     Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
-}
+};
