@@ -53,8 +53,8 @@ export default function SettlementsPage() {
     // Find names for the success message
     const payer    = members.find((m) => m.id === input.paid_by);
     const receiver = members.find((m) => m.id === input.paid_to);
-    const payerName    = payer?.nickname    ?? payer?.name    ?? "Payer";
-    const receiverName = receiver?.nickname ?? receiver?.name ?? "Receiver";
+    const payerName    = payer    ? (payer.nickname    ?? payer.name)    : "Payer";
+    const receiverName = receiver ? (receiver.nickname ?? receiver.name) : "Receiver";
     setSuccessMsg(
       `${payerName} paid ${receiverName} ${formatCurrency(input.amount)}.`
     );
