@@ -10,12 +10,14 @@ import {
   type SettlementWithMembers,
 } from "@/services/settlementService";
 import { getMembers } from "@/services/memberService";
+import { fetchMemberBalances } from "@/services/balanceService";
 import { formatCurrency } from "@/utils/formatters";
 import type { Member, NewSettlementInput } from "@/types";
 
 export default function SettlementsPage() {
   const [settlements, setSettlements] = useState<SettlementWithMembers[]>([]);
   const [members,     setMembers]     = useState<Member[]>([]);
+  const [balanceMap,  setBalanceMap]  = useState<Record<string, number>>({});
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState<string | null>(null);
   const [showForm,    setShowForm]    = useState(false);
@@ -30,12 +32,17 @@ export default function SettlementsPage() {
     setLoading(true);
     setError(null);
     try {
-      const [s, m] = await Promise.all([
+      const [s, m, balances] = await Promise.all([
         getSettlementsWithMembers(),
         getMembers(),
+        fetchMemberBalances(),
       ]);
       setSettlements(s);
       setMembers(m);
+      // Build memberId → balance lookup for the form
+      const map: Record<string, number> = {};
+      for (const b of balances) map[b.member.id] = b.balance;
+      setBalanceMap(map);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load data.");
     } finally {
@@ -46,17 +53,24 @@ export default function SettlementsPage() {
   // ── Add settlement ───────────────────────────────────────────────────────
   async function handleAdd(input: NewSettlementInput) {
     await addSettlement(input); // throws on error — SettlementForm catches it
-    const fresh = await getSettlementsWithMembers();
+    // Reload everything so balances and list are fresh
+    const [fresh, balances] = await Promise.all([
+      getSettlementsWithMembers(),
+      fetchMemberBalances(),
+    ]);
     setSettlements(fresh);
+    const map: Record<string, number> = {};
+    for (const b of balances) map[b.member.id] = b.balance;
+    setBalanceMap(map);
     setShowForm(false);
 
-    // Find names for the success message
-    const payer    = members.find((m) => m.id === input.paid_by);
+    // Success message
+    const giver    = members.find((m) => m.id === input.paid_by);
     const receiver = members.find((m) => m.id === input.paid_to);
-    const payerName    = payer    ? (payer.nickname    ?? payer.name)    : "Payer";
+    const giverName    = giver    ? (giver.nickname    ?? giver.name)    : "Giver";
     const receiverName = receiver ? (receiver.nickname ?? receiver.name) : "Receiver";
     setSuccessMsg(
-      `${payerName} paid ${receiverName} ${formatCurrency(input.amount)}.`
+      `${giverName} gave ${receiverName} ${formatCurrency(input.amount)}.`
     );
     setTimeout(() => setSuccessMsg(null), 5000);
   }
@@ -64,6 +78,11 @@ export default function SettlementsPage() {
   // ── Delete settlement ────────────────────────────────────────────────────
   async function handleDelete(id: string) {
     await deleteSettlement(id);
+    // Reload balances too so form stays accurate
+    const balances = await fetchMemberBalances();
+    const map: Record<string, number> = {};
+    for (const b of balances) map[b.member.id] = b.balance;
+    setBalanceMap(map);
     setSettlements((prev) => prev.filter((s) => s.id !== id));
   }
 
@@ -79,7 +98,7 @@ export default function SettlementsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Settlements</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {!loading && settlements.length > 0
-              ? `${settlements.length} payment${settlements.length !== 1 ? "s" : ""} · ${formatCurrency(totalSettled)} settled`
+              ? `${settlements.length} settlement${settlements.length !== 1 ? "s" : ""} · ${formatCurrency(totalSettled)} transferred`
               : "Record cash payments between members"}
           </p>
         </div>
@@ -107,6 +126,7 @@ export default function SettlementsPage() {
           ) : (
             <SettlementForm
               members={members}
+              balanceMap={balanceMap}
               onSubmit={handleAdd}
               onCancel={() => setShowForm(false)}
             />
@@ -138,12 +158,12 @@ export default function SettlementsPage() {
         <div className="mb-6 bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-700 space-y-1">
           <p className="font-medium">How settlements work</p>
           <p>
-            When one member pays another cash to clear a debt, record it here.
-            It will reduce what the payer owes and what the receiver is owed —
+            A member with a <strong>positive balance</strong> (the giver) hands cash to a
+            member with a <strong>negative balance</strong> (the receiver). Record it here and
             both balances adjust instantly.
           </p>
           <p className="text-blue-500">
-            Example: Ali owes ৳500 → Ali pays Bilal ৳500 cash → both balances go to ৳0.
+            Example: Rafi has +₨500. Sabbir has −₨500. Rafi gives Sabbir ₨500 cash → both go to ₨0.
           </p>
         </div>
       )}

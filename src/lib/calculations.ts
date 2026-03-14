@@ -14,17 +14,17 @@
  * BALANCE FORMULA (with settlements)
  * ─────────────────────────────────────────────────────────────────
  *
- *   balance = (total_paid_expenses + total_settlements_made)
- *           - (total_owed_expenses  + total_settlements_received)
+ *   balance = (total_paid_expenses + total_settlements_received)
+ *           - (total_owed_expenses  + total_settlements_made)
  *
  *   balance > 0  → others owe this member  (creditor)
  *   balance < 0  → this member owes others (debtor)
  *   balance = 0  → fully even
  *
  * WHY settlements work this way:
- *   When Ali pays Bilal ৳500 cash:
- *     Ali's   settlements_made     += 500 → balance increases (Ali owes less)
- *     Bilal's settlements_received += 500 → balance decreases (Bilal is owed less)
+ *   Giver (positive balance) gives cash to Receiver (negative balance):
+ *     Giver's    settlements_made     += amount → balance DECREASES (giver gave away credit)
+ *     Receiver's settlements_received += amount → balance INCREASES (receiver's debt reduced)
  *   Net effect across all members: 0  (settlements are zero-sum)
  *
  * ─────────────────────────────────────────────────────────────────
@@ -195,8 +195,8 @@ export function getTotalCoverBillsReceived(
 /**
  * Calculate the running balance for every member.
  *
- *   balance = (total_paid + total_settlements_made    + total_cover_bills_received)
- *           - (total_owed + total_settlements_received + total_cover_bills_given)
+ *   balance = (total_paid + total_settlements_received + total_cover_bills_received)
+ *           - (total_owed + total_settlements_made    + total_cover_bills_given)
  *
  * All three transaction types are zero-sum — the sum of all member balances = 0.
  * Result is sorted highest-first so creditors appear at the top of any list.
@@ -220,8 +220,8 @@ export function calculateMemberBalances(
     const total_cover_bills_received   = getTotalCoverBillsReceived(member.id, coverBills);
 
     const balance = roundMoney(
-      (total_paid + total_settlements_made    + total_cover_bills_received) -
-      (total_owed + total_settlements_received + total_cover_bills_given)
+      (total_paid + total_settlements_received + total_cover_bills_received) -
+      (total_owed + total_settlements_made     + total_cover_bills_given)
     );
 
     return {

@@ -5,7 +5,7 @@ import type { Settlement, NewSettlementInput } from "@/types";
 // ── Joined type returned by getSettlementsWithMembers ────────────────────────
 
 export interface SettlementWithMembers extends Settlement {
-  payer: { id: string; name: string; nickname: string | null };
+  giver: { id: string; name: string; nickname: string | null };
   receiver: { id: string; name: string; nickname: string | null };
 }
 
@@ -19,7 +19,7 @@ export async function getSettlementsWithMembers(): Promise<SettlementWithMembers
     .from(TABLES.SETTLEMENTS)
     .select(`
       id, group_id, paid_by, paid_to, amount, date, note, created_at,
-      payer:members!paid_by(id, name, nickname),
+      giver:members!paid_by(id, name, nickname),
       receiver:members!paid_to(id, name, nickname)
     `)
     .order("date", { ascending: false })

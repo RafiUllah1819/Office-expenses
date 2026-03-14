@@ -49,7 +49,7 @@ export default function SettlementList({
         <table className="min-w-full divide-y divide-gray-100">
           <thead className="bg-gray-50">
             <tr>
-              {["Date", "From", "", "To", "Amount", "Note", ""].map((h, i) => (
+              {["Date", "Giver", "", "Receiver", "Amount", "Note", ""].map((h, i) => (
                 <th
                   key={i}
                   className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide"
@@ -62,7 +62,7 @@ export default function SettlementList({
 
           <tbody className="divide-y divide-gray-100">
             {settlements.map((s) => {
-              const payerName    = s.payer.nickname    ?? s.payer.name;
+              const giverName    = s.giver.nickname    ?? s.giver.name;
               const receiverName = s.receiver.nickname ?? s.receiver.name;
               const isDeleting   = deletingId === s.id;
               const err          = rowError[s.id];
@@ -75,14 +75,14 @@ export default function SettlementList({
                       {formatDate(s.date)}
                     </td>
 
-                    {/* Payer avatar + name */}
+                    {/* Giver avatar + name */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                          {getInitials(payerName)}
+                          {getInitials(giverName)}
                         </div>
                         <span className="text-sm font-medium text-gray-900 whitespace-nowrap">
-                          {payerName}
+                          {giverName}
                         </span>
                       </div>
                     </td>

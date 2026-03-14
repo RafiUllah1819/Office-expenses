@@ -129,12 +129,12 @@ create index if not exists idx_expense_participants_member  on expense_participa
 -- It simply reduces what the payer owes and what the receiver is owed.
 --
 -- Effect on balance formula:
---   balance = (total_paid_expenses + total_settlements_made)
---           - (total_owed_expenses  + total_settlements_received)
+--   balance = (total_paid_expenses + total_settlements_received)
+--           - (total_owed_expenses  + total_settlements_made)
 --
--- Example: Ali owes ৳500, pays Bilal ৳500 cash:
---   Ali:   settlements_made=500     → balance goes from -500 → 0  ✓
---   Bilal: settlements_received=500 → balance goes from +500 → 0  ✓
+-- Example: Rafi has +500, Sabbir has -500. Rafi (giver) gives Sabbir (receiver) 500 cash:
+--   Rafi:   settlements_made=500     → DEBIT side  → balance goes from +500 → 0  ✓
+--   Sabbir: settlements_received=500 → CREDIT side → balance goes from -500 → 0  ✓
 --   Net across all members: still 0 (settlements are zero-sum)
 -- =============================================================================
 create table if not exists settlements (
@@ -233,13 +233,13 @@ select
   coalesce(sum(cb_out.amount)   filter (where cb_out.helper_id    = m.id), 0)  as total_cover_bills_given,
   coalesce(sum(cb_in.amount)    filter (where cb_in.beneficiary_id = m.id), 0) as total_cover_bills_received,
   (
-    coalesce(sum(e.amount)       filter (where e.paid_by            = m.id), 0)
-    + coalesce(sum(s_out.amount) filter (where s_out.paid_by        = m.id), 0)
-    + coalesce(sum(cb_in.amount) filter (where cb_in.beneficiary_id = m.id), 0)
+    coalesce(sum(e.amount)       filter (where e.paid_by             = m.id), 0)
+    + coalesce(sum(s_in.amount)  filter (where s_in.paid_to          = m.id), 0)
+    + coalesce(sum(cb_in.amount) filter (where cb_in.beneficiary_id  = m.id), 0)
   ) - (
     coalesce(sum(ep.share_amount), 0)
-    + coalesce(sum(s_in.amount)   filter (where s_in.paid_to        = m.id), 0)
-    + coalesce(sum(cb_out.amount) filter (where cb_out.helper_id    = m.id), 0)
+    + coalesce(sum(s_out.amount)  filter (where s_out.paid_by        = m.id), 0)
+    + coalesce(sum(cb_out.amount) filter (where cb_out.helper_id     = m.id), 0)
   )                                                                             as balance
 from
   members m
@@ -253,4 +253,4 @@ group by
   m.id, m.name, m.email, m.group_id;
 
 comment on view member_balances is
-  'Full balance per member: (paid + settlements_made + cover_bills_received) - (owed + settlements_received + cover_bills_given).';
+  'Full balance per member: (paid + settlements_received + cover_bills_received) - (owed + settlements_made + cover_bills_given).';
