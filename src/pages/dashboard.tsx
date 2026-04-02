@@ -160,6 +160,15 @@ export default function DashboardPage() {
   const totalSpent     = expenses.reduce((s, e) => s + e.amount, 0);
   const unsettled      = balances.filter((b) => b.balance !== 0).length;
 
+  const todayStr  = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const monthStr  = todayStr.slice(0, 7);                  // "YYYY-MM"
+
+  const todayExpenses  = expenses.filter((e) => e.date.slice(0, 10) === todayStr);
+  const monthExpenses  = expenses.filter((e) => e.date.slice(0, 7) === monthStr);
+
+  const todaySpent  = todayExpenses.reduce((s, e) => s + e.amount, 0);
+  const monthSpent  = monthExpenses.reduce((s, e) => s + e.amount, 0);
+
   // Top payer = member with highest total_paid
   const topPayer = balances.length > 0
     ? balances.reduce((best, b) =>
@@ -199,10 +208,10 @@ export default function DashboardPage() {
       )}
 
       {/* ── Stat cards ─────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
         {loading ? (
           <>
-            {[1, 2, 3, 4].map((n) => (
+            {[1, 2, 3, 4, 5, 6].map((n) => (
               <div key={n} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-2">
                 <Skeleton className="h-3 w-16" />
                 <Skeleton className="h-7 w-24" />
@@ -234,6 +243,24 @@ export default function DashboardPage() {
                 unsettled === 0
                   ? "everyone is even"
                   : `member${unsettled !== 1 ? "s" : ""} with open balance`
+              }
+            />
+            <StatCard
+              label="Today's Expenses"
+              value={formatCurrency(todaySpent)}
+              sub={
+                todayExpenses.length === 0
+                  ? "no expenses today"
+                  : `${todayExpenses.length} expense${todayExpenses.length !== 1 ? "s" : ""} today`
+              }
+            />
+            <StatCard
+              label="This Month"
+              value={formatCurrency(monthSpent)}
+              sub={
+                monthExpenses.length === 0
+                  ? "no expenses this month"
+                  : `${monthExpenses.length} expense${monthExpenses.length !== 1 ? "s" : ""} this month`
               }
             />
           </>
